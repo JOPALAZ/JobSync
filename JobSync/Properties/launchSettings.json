@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "JobSync": {
+      "commandName": "Project",
+      "commandLineArgs": "-l testlog.txt -i 10000 -s ..\\input -r ..\\replica -v2"
+    }
+  }
+}
