@@ -1,8 +1,4 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace JobSync
+﻿namespace JobSync
 {
     public class Program
     {
@@ -24,7 +20,7 @@ namespace JobSync
                     Console.CancelKeyPress += (sender, e) =>
                     {
                         e.Cancel = true;
-                        logger.Log("Cancellation requested. Stopping sync...");
+                        logger.Log("Cancellation requested. Stopping synchronization...");
                         cts.Cancel();
                     };
 

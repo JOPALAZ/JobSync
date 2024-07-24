@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using System.Collections.Concurrent;
 
 namespace JobSync
 {
@@ -10,7 +6,7 @@ namespace JobSync
     {
         public readonly string logFilePath;
         private readonly int verbose;
-        private readonly BlockingCollection<LogMessage> logQueue = new();
+        private readonly BlockingCollection<LogMessage> logQueue = [];
         private readonly Task logTask;
         private readonly StreamWriter logWriter;
 
