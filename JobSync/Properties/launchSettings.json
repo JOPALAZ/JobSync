@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "JobSync": {
+      "commandName": "Project",
+      "commandLineArgs": "-l realCase.log -v2 -i 60000 -s D:/!!!!SOAD -r  D:/!!!!SOAD2 -c MD5"
+    }
+  }
+}
