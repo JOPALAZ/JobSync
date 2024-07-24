@@ -6,18 +6,22 @@ using System.Threading.Tasks;
 
 namespace JobSync
 {
-    internal class Logger : IDisposable
+    public class Logger : IDisposable
     {
-        private readonly string logFilePath;
+        public readonly string logFilePath;
         private readonly int verbose;
         private readonly BlockingCollection<LogMessage> logQueue = new();
         private readonly Task logTask;
+        private readonly StreamWriter logWriter;
 
         public Logger(string logFilePath, int verbose)
         {
             this.logFilePath = Path.GetFullPath(logFilePath);
             this.verbose = verbose;
-
+            this.logWriter = new StreamWriter(new FileStream(this.logFilePath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite))
+            {
+                AutoFlush = true
+            };
             logTask = Task.Factory.StartNew(ProcessLogQueue, TaskCreationOptions.LongRunning);
             Log($"Log started in file {this.logFilePath}");
         }
@@ -53,14 +57,13 @@ namespace JobSync
                 if (logMessage.IsError)
                 {
                     Console.Error.Write(logMessage.Message);
-                    Console.Error.Flush();
                 }
                 else
                 {
                     Console.Write(logMessage.Message);
                 }
 
-                File.AppendAllText(logFilePath, logMessage.Message);
+                logWriter.Write(logMessage.Message);
             }
         }
 
@@ -72,6 +75,7 @@ namespace JobSync
         public void Dispose()
         {
             logQueue.CompleteAdding();
+            logWriter.Close();
             logTask.Wait();
         }
         private class LogMessage

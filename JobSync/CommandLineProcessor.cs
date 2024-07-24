@@ -1,7 +1,7 @@
 ﻿using CommandLine;
 namespace JobSync
 {
-    internal class Parameters
+    public class Parameters
     {
         [Option('l', "logFilePath", Required = true, HelpText = "Path to the log file.")]
         public string LogFilePath { get; set; } = string.Empty;
@@ -20,9 +20,12 @@ namespace JobSync
 
         [Option('r', "replicaPath", Required = true, HelpText = "Path to the replica directory.")]
         public string ReplicaPath { get; set; } = string.Empty;
+
+        [Option('c', "comparator", Default = "Binary", HelpText = "Comparator used to ensure files identity (MD5/Binary/SHA256/NONE(Only check size))")]
+        public string Comparator { get; set; } = "Binary";
     }
 
-    internal class CommandLineProcessor
+    public class CommandLineProcessor
     {
         public static Parameters? ParseArguments(string[] args)
         {
