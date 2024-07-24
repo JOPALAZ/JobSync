@@ -21,8 +21,8 @@ namespace JobSync
         [Option('r', "replicaPath", Required = true, HelpText = "Path to the replica directory.")]
         public string ReplicaPath { get; set; } = string.Empty;
 
-        [Option('c', "comparator", Default = "Binary", HelpText = "Comparator used to ensure files identity (MD5/Binary/SHA256/NONE(Only check size))")]
-        public string Comparator { get; set; } = "Binary";
+        [Option('c', "comparator", Default = "MD5", HelpText = "Comparator used to ensure files identity (MD5/Binary/SHA256/NONE(Only check size))")]
+        public string Comparator { get; set; } = "MD5";
     }
 
     public class CommandLineProcessor
