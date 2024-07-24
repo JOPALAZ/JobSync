@@ -1,10 +1,3 @@
-using System;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
-using Xunit;
-using JobSync;
-
 namespace JobSync.Tests
 {
     public class SynchronizerTests : IDisposable

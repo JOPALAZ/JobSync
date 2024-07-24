@@ -145,55 +145,6 @@ namespace JobSync
 
             await Task.WhenAll(fileTasks);
         }
-
-        private async Task CopyFile(string source, string target)
-        {
-            for (int attempt = 0; attempt < maxRetryAttempts; attempt++)
-            {
-                try
-                {
-                    using (FileStream sourceStream = new(source, FileMode.Open, FileAccess.Read, FileShare.Read))
-                    using (FileStream targetStream = new(target, FileMode.Create, FileAccess.Write, FileShare.None))
-                    {
-                        await sourceStream.CopyToAsync(targetStream);
-                    }
-                    logger.LogImportant($"Copied file '{source}' to '{target}'.");
-                    break;
-                }
-                catch (IOException ioEx) when (attempt < maxRetryAttempts - 1)
-                {
-                    logger.Log($"Attempt {attempt + 1} failed: {ioEx.Message} Retrying...");
-                    await Task.Delay(retryDelayMilliseconds);
-                }
-                catch (IOException ioEx)
-                {
-                    logger.Log($"Attempt {attempt + 1} failed: {ioEx.Message}");
-                    throw;
-                }
-            }
-        }
-        private async Task DeleteFile(FileInfo file)
-        {
-            for (int attempt = 0; attempt < maxRetryAttempts; attempt++)
-            {
-                try
-                {
-                    file.Delete();
-                    logger.LogImportant($"Deleted file '{file.FullName}' from replica.");
-                    break;
-                }
-                catch (IOException ioEx) when (attempt < maxRetryAttempts - 1)
-                {
-                    logger.Log($"Attempt {attempt + 1} failed: {ioEx.Message} Retrying...");
-                    await Task.Delay(retryDelayMilliseconds);
-                }
-                catch (IOException ioEx)
-                {
-                    logger.Log($"Attempt {attempt + 1} failed: {ioEx.Message}");
-                    throw;
-                }
-            }
-        }
         private async Task CleanReplicaAsync(DirectoryInfo replicaDirectory)
         {
             FileInfo[] replicaFiles = replicaDirectory.GetFiles("*", SearchOption.AllDirectories);
@@ -254,6 +205,54 @@ namespace JobSync
                         Stop();
                         return;
                     }
+                }
+            }
+        }
+        private async Task CopyFile(string source, string target)
+        {
+            for (int attempt = 0; attempt < maxRetryAttempts; attempt++)
+            {
+                try
+                {
+                    using (FileStream sourceStream = new(source, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    using (FileStream targetStream = new(target, FileMode.Create, FileAccess.Write, FileShare.None))
+                    {
+                        await sourceStream.CopyToAsync(targetStream);
+                    }
+                    logger.LogImportant($"Copied file '{source}' to '{target}'.");
+                    break;
+                }
+                catch (IOException ioEx) when (attempt < maxRetryAttempts - 1)
+                {
+                    logger.Log($"Attempt {attempt + 1} failed: {ioEx.Message} Retrying...");
+                    await Task.Delay(retryDelayMilliseconds);
+                }
+                catch (IOException ioEx)
+                {
+                    logger.Log($"Attempt {attempt + 1} failed: {ioEx.Message}");
+                    throw;
+                }
+            }
+        }
+        private async Task DeleteFile(FileInfo file)
+        {
+            for (int attempt = 0; attempt < maxRetryAttempts; attempt++)
+            {
+                try
+                {
+                    file.Delete();
+                    logger.LogImportant($"Deleted file '{file.FullName}' from replica.");
+                    break;
+                }
+                catch (IOException ioEx) when (attempt < maxRetryAttempts - 1)
+                {
+                    logger.Log($"Attempt {attempt + 1} failed: {ioEx.Message} Retrying...");
+                    await Task.Delay(retryDelayMilliseconds);
+                }
+                catch (IOException ioEx)
+                {
+                    logger.Log($"Attempt {attempt + 1} failed: {ioEx.Message}");
+                    throw;
                 }
             }
         }
