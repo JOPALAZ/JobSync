@@ -344,7 +344,7 @@ namespace JobSync
             }
             catch (OperationCanceledException)
             {
-                logger.LogImportant("Synchronization operation was cancelled.");
+                logger.Log("Synchronization operation was cancelled.");
             }
         }
 

@@ -71,8 +71,8 @@ namespace JobSync
         public void Dispose()
         {
             logQueue.CompleteAdding();
-            logWriter.Close();
             logTask.Wait();
+            logWriter.Close();
         }
         private class LogMessage
         {
