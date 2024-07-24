@@ -35,10 +35,6 @@
                     Environment.Exit(1);
                 }
             }
-            else
-            {
-                Logger.LogCriticalError("Failed to parse command line arguments.");
-            }
         }
     }
 }
