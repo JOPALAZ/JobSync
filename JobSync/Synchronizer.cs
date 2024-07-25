@@ -14,6 +14,7 @@ namespace JobSync
         private readonly string comparingMethod = comparingMethod.ToUpper();
         private readonly bool fragile = fragile;
 
+        // Synchronizes directories and files between source and replica
         private async Task SyncDirectoriesAsync()
         {
             try
@@ -38,7 +39,7 @@ namespace JobSync
                     logger.LogImportant($"Replica directory '{replicaPath}' does not exist. Creating...");
                     replicaDirectory.Create();
                 }
-
+                // Synchronize files and directories asynchronosly, and clean up replica (possible because deleting and copying contradict one another)
                 Task syncTask = SyncFilesAndDirectoriesAsync(sourceDirectory);
                 Task cleanTask = CleanReplicaAsync(replicaDirectory);
                 await Task.WhenAll(syncTask,cleanTask);
@@ -61,11 +62,13 @@ namespace JobSync
             }
         }
 
+        // Copies files and directories from source to replica
         private async Task SyncFilesAndDirectoriesAsync(DirectoryInfo sourceDirectory)
         {
             FileInfo[] sourceFiles = sourceDirectory.GetFiles("*", SearchOption.AllDirectories);
             DirectoryInfo[] sourceDirectories = sourceDirectory.GetDirectories("*", SearchOption.AllDirectories);
 
+            // Synchronize directories
             foreach (DirectoryInfo dir in sourceDirectories)
             {
                 try
@@ -94,6 +97,7 @@ namespace JobSync
                 }
             }
 
+            // Synchronize files asynchronously, a task for each file.
             IEnumerable<Task> fileTasks = sourceFiles.Select(file => Task.Run(async () =>
             {
                 try
@@ -101,7 +105,7 @@ namespace JobSync
                     bool shouldCopy = false;
                     string targetFilePath = file.FullName.Replace(sourcePath, replicaPath);
                     FileInfo targetFile = new(targetFilePath);
-                    for (int attempt = 0; attempt < maxRetryAttempts; attempt++)
+                    for (int attempt = 0; attempt < maxRetryAttempts; attempt++) // If FS error occurs (e.g, file is open elsewhere) try N times.
                     {
                         try
                         {
@@ -129,7 +133,7 @@ namespace JobSync
                 }
                 catch (TaskCanceledException)
                 {
-                    return;
+                    return; // Task was canceled, dont have to log.
                 }
                 catch (Exception ex)
                 {
@@ -145,9 +149,12 @@ namespace JobSync
 
             await Task.WhenAll(fileTasks);
         }
+
+        // Cleans up replica directory by removing files and directories not present in the source
         private async Task CleanReplicaAsync(DirectoryInfo replicaDirectory)
         {
             FileInfo[] replicaFiles = replicaDirectory.GetFiles("*", SearchOption.AllDirectories);
+            // Deliting files asynchronously, a task for each file.
             IEnumerable<Task> fileTasks = replicaFiles.Select(file => Task.Run(async () =>
             {
                 try
@@ -163,7 +170,7 @@ namespace JobSync
                 }
                 catch (TaskCanceledException)
                 {
-                    return;
+                    return; // Task was canceled, dont have to log.
                 }
                 catch (Exception ex)
                 {
@@ -181,6 +188,7 @@ namespace JobSync
 
             IOrderedEnumerable<DirectoryInfo> replicaDirs = replicaDirectory.GetDirectories("*", SearchOption.AllDirectories)
                 .OrderByDescending(d => d.FullName.Length);
+            //Deleting directories from inner to outer to avoid trying possible errors tryng to delete non-existent subdirs in non-existent dirs.
             foreach (DirectoryInfo dir in replicaDirs)
             {
                 try
@@ -208,9 +216,11 @@ namespace JobSync
                 }
             }
         }
+
+        // Copies a file from source to target
         private async Task CopyFile(string source, string target)
         {
-            for (int attempt = 0; attempt < maxRetryAttempts; attempt++)
+            for (int attempt = 0; attempt < maxRetryAttempts; attempt++) // If FS error occurs (e.g, file is open elsewhere) try N times.
             {
                 try
                 {
@@ -234,9 +244,11 @@ namespace JobSync
                 }
             }
         }
+
+        // Deletes a file from the replica
         private async Task DeleteFile(FileInfo file)
         {
-            for (int attempt = 0; attempt < maxRetryAttempts; attempt++)
+            for (int attempt = 0; attempt < maxRetryAttempts; attempt++) // If FS error occurs (e.g, file is open elsewhere) try N times.
             {
                 try
                 {
@@ -257,34 +269,38 @@ namespace JobSync
             }
         }
 
+        // Ensures a path has a trailing slash
         private static string EnsureTrailingSlash(string path)
         {
             if (!path.EndsWith(Path.DirectorySeparatorChar.ToString()))
             {
-                path += Path.DirectorySeparatorChar;
+                path += Path.DirectorySeparatorChar; //If there is no '\' or '/' at the end, add it, so Replace method can be used safely.
             }
             return path;
         }
 
+        // Compares two files using MD5 hash
         public static async Task<bool> CompareMD5Async(string filePath1, string filePath2)
         {
             using MD5 md5 = MD5.Create();
-            using FileStream stream1 = new(filePath1, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using FileStream stream1 = new(filePath1, FileMode.Open, FileAccess.Read, FileShare.Read); //ensuring that files wont be changed during the check.
             using FileStream stream2 = new(filePath2, FileMode.Open, FileAccess.Read, FileShare.Read);
 
             byte[] hash1 = await md5.ComputeHashAsync(stream1);
             byte[] hash2 = await md5.ComputeHashAsync(stream2);
-            stream1.Close();
+            stream1.Close(); 
             stream2.Close();
             return hash1.SequenceEqual(hash2);
         }
+
+        // Compares two files by binary content
         public static async Task<bool> CompareFilesBinaryAsync(string filePath1, string filePath2)
         {
             const int bufferSize = 1024 * 1024; // 1MB
             byte[] buffer1 = new byte[bufferSize];
             byte[] buffer2 = new byte[bufferSize];
 
-            using FileStream fs1 = new(filePath1, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using FileStream fs1 = new(filePath1, FileMode.Open, FileAccess.Read, FileShare.Read); //ensuring that files wont be changed during the check.
             using FileStream fs2 = new(filePath2, FileMode.Open, FileAccess.Read, FileShare.Read);
             int bytesRead1, bytesRead2;
             while ((bytesRead1 = await fs1.ReadAsync(buffer1.AsMemory(0, bufferSize))) > 0 &&
@@ -302,10 +318,12 @@ namespace JobSync
 
             return true;
         }
+
+        // Compares two files using SHA256 hash
         public static async Task<bool> CompareSHA256Async(string filePath1, string filePath2)
         {
             using SHA256 sHA256 = SHA256.Create();
-            using FileStream stream1 = new(filePath1, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using FileStream stream1 = new(filePath1, FileMode.Open, FileAccess.Read, FileShare.Read); //ensuring that files wont be changed during the check.
             using FileStream stream2 = new(filePath2, FileMode.Open, FileAccess.Read, FileShare.Read);
 
             byte[] hash1 = await sHA256.ComputeHashAsync(stream1);
@@ -314,6 +332,8 @@ namespace JobSync
             stream2.Close();
             return hash1.SequenceEqual(hash2);
         }
+
+        // Compares two files according to method chosen.
         private async Task<bool> CompareFilesAsync(string filePath1, string filePath2)
         {
             bool result = comparingMethod switch
@@ -331,7 +351,7 @@ namespace JobSync
 
         }
 
-
+        // Starts the synchronization process, repeatedly syncing at specified intervals
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             try
@@ -348,6 +368,7 @@ namespace JobSync
             }
         }
 
+        // Stops the synchronization process
         public void Stop()
         {
             logger.Log("Disabling synchronization process.");

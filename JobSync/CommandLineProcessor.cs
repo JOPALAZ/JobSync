@@ -1,6 +1,7 @@
 ﻿using CommandLine;
 namespace JobSync
 {
+    // This class defines the command-line options for the application.
     public class Parameters
     {
         [Option('l', "logFilePath", Required = true, HelpText = "Path to the log file.")]
@@ -25,14 +26,16 @@ namespace JobSync
         public string Comparator { get; set; } = "MD5";
     }
 
+    // This class is responsible for parsing command-line arguments.
     public class CommandLineProcessor
     {
+        // Parses the command-line arguments into a Parameters object.
         public static Parameters? ParseArguments(string[] args)
         {
             Parameters? parameters = null;
             _ = Parser.Default.ParseArguments<Parameters>(args)
-                .WithParsed(opts => parameters = opts);
-            return parameters;
+                .WithParsed(opts => parameters = opts); // If parsing succeeds, the options are assigned to the parameters object.
+            return parameters; // Returns the parameters object or null if parsing fails.
         }
     }
 }
