@@ -15,6 +15,16 @@ namespace JobSync
         private readonly bool fragile = fragile;
 
         // Synchronizes directories and files between source and replica
+        private void HandleException(Exception ex) 
+        {
+            logger.LogError($"Error during synchronization: {ex.Message}");
+            if (fragile)
+            {
+                logger.LogError("Error was encountered, unable to safely proceed.");
+                Stop();
+                Environment.Exit(1);
+            }
+        }
         private async Task SyncDirectoriesAsync()
         {
             try
@@ -52,13 +62,7 @@ namespace JobSync
             }
             catch (Exception ex)
             {
-                logger.LogError($"Error during synchronization: {ex.Message}");
-                if (fragile)
-                {
-                    logger.LogError("Error was encountered, unable to safely proceed.");
-                    Stop();
-                    return;
-                }
+                HandleException(ex);
             }
         }
 
@@ -87,13 +91,7 @@ namespace JobSync
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError($"Error during synchronization: {ex.Message}");
-                    if (fragile)
-                    {
-                        logger.LogError("Error was encountered, unable to safely proceed.");
-                        Stop();
-                        return;
-                    }
+                    HandleException(ex);
                 }
             }
 
@@ -137,13 +135,7 @@ namespace JobSync
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError($"Error during synchronization: {ex.Message}");
-                    if (fragile)
-                    {
-                        logger.LogError("Error was encountered, unable to safely proceed.");
-                        Stop();
-                        return;
-                    }
+                    HandleException(ex);
                 }
             }, cancellationToken.Token)).ToArray();
 
@@ -174,15 +166,9 @@ namespace JobSync
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError($"Error during synchronization: {ex.Message}");
-                    if (fragile)
-                    {
-                        logger.LogError("Error was encountered, unable to safely proceed.");
-                        Stop();
-                        return;
-                    }
+                    HandleException(ex);
                 }
-            })).ToArray();
+            }, cancellationToken.Token)).ToArray();
 
             await Task.WhenAll(fileTasks);
 
@@ -206,13 +192,7 @@ namespace JobSync
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError($"Error during synchronization: {ex.Message}");
-                    if (fragile)
-                    {
-                        logger.LogError("Error was encountered, unable to safely proceed.");
-                        Stop();
-                        return;
-                    }
+                    HandleException(ex);
                 }
             }
         }
@@ -288,8 +268,6 @@ namespace JobSync
 
             byte[] hash1 = await md5.ComputeHashAsync(stream1);
             byte[] hash2 = await md5.ComputeHashAsync(stream2);
-            stream1.Close(); 
-            stream2.Close();
             return hash1.SequenceEqual(hash2);
         }
 
@@ -308,14 +286,9 @@ namespace JobSync
             {
                 if (bytesRead1 != bytesRead2 || !buffer1.AsSpan(0, bytesRead1).SequenceEqual(buffer2.AsSpan(0, bytesRead2)))
                 {
-                    fs1.Close();
-                    fs2.Close();
                     return false;
                 }
             }
-            fs1.Close();
-            fs2.Close();
-
             return true;
         }
 
@@ -328,8 +301,6 @@ namespace JobSync
 
             byte[] hash1 = await sHA256.ComputeHashAsync(stream1);
             byte[] hash2 = await sHA256.ComputeHashAsync(stream2);
-            stream1.Close();
-            stream2.Close();
             return hash1.SequenceEqual(hash2);
         }
 
