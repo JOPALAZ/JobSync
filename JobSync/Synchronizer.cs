@@ -22,7 +22,7 @@ namespace JobSync
             {
                 logger.LogError("Error was encountered, unable to safely proceed.");
                 Stop();
-                Environment.Exit(1);
+                //Environment.Exit(1);
             }
         }
         private async Task SyncDirectoriesAsync()
